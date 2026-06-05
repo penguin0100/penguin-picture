@@ -1,6 +1,5 @@
 package org.example.picture.service.impl;
 
-
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
@@ -27,15 +26,12 @@ import java.util.stream.Collectors;
 
 import static org.example.picture.constant.UserConstant.USER_LOGIN_STATE;
 
-/**
-* @author ssz 摸鱼吧
-* @description 针对表【user(用户)】的数据库操作Service实现
-* @createDate 2026-06-04 20:18:52
-*/
 @Service
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
-
+    /**
+     * 用户注册
+     */
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
         // 1. 校验
@@ -72,7 +68,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         return user.getId();
     }
-
+    /**
+     * 获取加密后的密码
+     */
     @Override
     public String getEncryptPassword(String userPassword) {
         // 盐值，混淆密码
@@ -80,6 +78,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
     }
 
+    /**
+     * 用户登录
+     */
     @Override
     public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 1. 校验
@@ -108,7 +109,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         request.getSession().setAttribute(USER_LOGIN_STATE, user);
         return this.getLoginUserVO(user);
     }
-
+    /**
+     * 获取当前登录用户
+     */
     @Override
     public User getLoginUser(HttpServletRequest request) {
         // 先判断是否已登录
@@ -125,7 +128,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         return currentUser;
     }
-
+    /**
+     * 获取登录用户VO
+     */
     @Override
     public LoginUserVO getLoginUserVO(User user) {
         if (user == null) {
@@ -135,7 +140,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         BeanUtils.copyProperties(user, loginUserVO);
         return loginUserVO;
     }
-
+    /**
+     * 用户注销
+     */
     @Override
     public boolean userLogout(HttpServletRequest request) {
         // 先判断是否已登录
@@ -147,7 +154,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         request.getSession().removeAttribute(USER_LOGIN_STATE);
         return true;
     }
-
+    /**
+     * 获取用户VO
+     */
     @Override
     public UserVO getUserVO(User user) {
         if (user == null) {
@@ -157,7 +166,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         BeanUtils.copyProperties(user, userVO);
         return userVO;
     }
-
+    /**
+     * 获取用户VO列表
+     */
     @Override
     public List<UserVO> getUserVOList(List<User> userList) {
         if (CollUtil.isEmpty(userList)) {
@@ -165,6 +176,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         return userList.stream().map(this::getUserVO).collect(Collectors.toList());
     }
+    /**
+     * 获取用户查询条件
+     */
     @Override
     public QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest) {
         if (userQueryRequest == null) {
@@ -186,6 +200,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
         return queryWrapper;
     }
+    /**
+     * 是否为管理员
+     */
+    @Override
+    public boolean isAdmin(User user) {
+        return user != null && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
+    }
+
 
 
 
