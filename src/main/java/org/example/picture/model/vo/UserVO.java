@@ -3,6 +3,7 @@ package org.example.picture.model.vo;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.Date;
 
 @Data
 public class UserVO implements Serializable {
