@@ -9,6 +9,7 @@ import org.example.picture.model.dto.picture.*;
 import org.example.picture.model.entity.Picture;
 import org.example.picture.model.entity.User;
 import org.example.picture.model.vo.PictureVO;
+import org.springframework.web.multipart.MultipartFile;
 
 
 import java.util.List;
@@ -52,5 +53,28 @@ public interface PictureService extends IService<Picture> {
      * @return
      */
     QueryWrapper<Picture> getQueryWrapper(PictureQueryRequest pictureQueryRequest);
+    /**
+     * 上传图片
+     *
+     * @param multipartFile
+     * @param pictureUploadRequest
+     * @param loginUser
+     * @return
+     */
+    PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest, User loginUser);
 
+    /**
+     * 图片审核
+     *
+     * @param pictureReviewRequest
+     * @param loginUser
+     */
+    void doPictureReview(PictureReviewRequest pictureReviewRequest, User loginUser);
+
+    /**
+     * 填充审核参数
+     * @param picture
+     * @param loginUser
+     */
+    void fillReviewParams(Picture picture, User loginUser);
 }
