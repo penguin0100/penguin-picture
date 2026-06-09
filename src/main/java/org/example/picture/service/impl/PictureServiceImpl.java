@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.picture.exception.BusinessException;
 import org.example.picture.exception.ErrorCode;
 import org.example.picture.exception.ThrowUtils;
+import org.example.picture.manager.CosManager;
 import org.example.picture.manager.FileManager;
 import org.example.picture.manager.upload.FilePictureUpload;
 import org.example.picture.manager.upload.PictureUploadTemplate;
@@ -31,6 +32,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -56,6 +58,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 
     @Resource
     private UrlPictureUpload urlPictureUpload;
+
+    @Resource
+    private CosManager cosManager;
+
     /**
      * 校验图片
      */
@@ -217,7 +223,13 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         // 构造要入库的图片信息
         Picture picture = new Picture();
         picture.setUrl(uploadPictureResult.getUrl());
-        picture.setName(uploadPictureResult.getPicName());
+        picture.setThumbnailUrl(uploadPictureResult.getThumbnailUrl());
+        // 支持外层传递图片名称
+        String picName = uploadPictureResult.getPicName();
+        if (pictureUploadRequest != null && StrUtil.isNotBlank(pictureUploadRequest.getPicName())) {
+            picName = pictureUploadRequest.getPicName();
+        }
+        picture.setName(picName);
         picture.setPicSize(uploadPictureResult.getPicSize());
         picture.setPicWidth(uploadPictureResult.getPicWidth());
         picture.setPicHeight(uploadPictureResult.getPicHeight());
@@ -293,6 +305,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         // 格式化数量
         Integer count = pictureUploadByBatchRequest.getCount();
         ThrowUtils.throwIf(count > 30, ErrorCode.PARAMS_ERROR, "最多 30 条");
+        // 名称前缀默认等于搜索关键词
+        String namePrefix = pictureUploadByBatchRequest.getNamePrefix();
+        if (StrUtil.isBlank(namePrefix)) {
+            namePrefix = searchText;
+        }
         // 要抓取的地址
         String fetchUrl = String.format("https://picsum.photos/200/300", searchText);
         Document document;
@@ -321,6 +338,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             }
             // 上传图片
             PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
+            pictureUploadRequest.setFileUrl(fileUrl);
+            pictureUploadRequest.setPicName(namePrefix + (uploadCount + 1));
             try {
                 PictureVO pictureVO = this.uploadPicture(fileUrl, pictureUploadRequest, loginUser);
                 log.info("图片上传成功, id = {}", pictureVO.getId());
@@ -335,6 +354,32 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         }
         return uploadCount;
     }
+    /**
+     * 清理图片文件
+     *
+     * @param oldPicture 旧图片
+     */
+    @Async// 异步执行
+    @Override
+    public void clearPictureFile(Picture oldPicture) {
+        // 判断改图片是否被多条记录使用
+        String pictureUrl = oldPicture.getUrl();
+        long count = this.lambdaQuery()
+                .eq(Picture::getUrl, pictureUrl)
+                .count();
+        // 有不止一条记录用到了该图片，不清理
+        if (count > 1) {
+            return;
+        }
+        // 删除图片
+        cosManager.deleteObject(pictureUrl);
+        // 删除缩略图
+        String thumbnailUrl = oldPicture.getThumbnailUrl();
+        if (StrUtil.isNotBlank(thumbnailUrl)) {
+            cosManager.deleteObject(thumbnailUrl);
+        }
+    }
+
 
 
 }

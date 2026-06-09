@@ -9,6 +9,7 @@ import org.example.picture.model.dto.picture.*;
 import org.example.picture.model.entity.Picture;
 import org.example.picture.model.entity.User;
 import org.example.picture.model.vo.PictureVO;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.multipart.MultipartFile;
 
 
@@ -89,4 +90,6 @@ public interface PictureService extends IService<Picture> {
             User loginUser
     );
 
+    @Async
+    void clearPictureFile(Picture oldPicture);
 }
